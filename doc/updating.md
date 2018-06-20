@@ -1,11 +1,16 @@
-## 全局统一异常处理的使用方式和源码解析
+---
+title: 全局统一异常处理的使用方式和源码解析
+date: 2018-06-20 17:41:20
+tags: Java
+---
+更新中。。。
+<!--more-->
 
 ### 前言
 
 异常处理是开发过程中一个不可避免的问题，你是否写过这样的代码？你是否还在写这样的代码？你是否已经厌倦写这样的代码？
 
-<pre>
-<code>
+```java
 @RestController
 @RequestMapping(value = "/api/v1/tasks")
 @Slf4j
@@ -34,15 +39,13 @@ public class TaskController implements ITaskController {
 		return result;
     }
 }
-</code>
-</pre>
+```
 
 看看这无止境的try...catch...，全局统一异常处理了解一下？
 
 统一异常处理是一种非常方便的异常处理方式，能够简化控制层和服务层的代码。让我们来对比一下。
 
-<pre>
-<code>
+```java
 @RestController
 @RequestMapping(value = "/api/v1/tasks")
 @Slf4j
@@ -59,8 +62,7 @@ public class TaskController implements ITaskController {
   	}
 	
 }
-</code>
-</pre>
+```
 
 现在比较流行的两种全局异常处理的方式：
 ##
@@ -72,8 +74,7 @@ public class TaskController implements ITaskController {
 ### 准备工作
 首先，我们先自定义一个异常，用来代表应用可能会产生的业务异常。
 
-<pre>
-<code>
+```java
 @Slf4j
 public class BusinessException extends RuntimeException implements IException2Result {
 
@@ -107,29 +108,25 @@ public class BusinessException extends RuntimeException implements IException2Re
     }
 
 }
-</code>
-</pre>
+```
 
 同时可以在此异常的基础上通过继承进行扩展，以满足自己的需要。
 
 #### HandlerExceptionResolver接口的使用方式
 我们先来看一下HandlerExceptionResolver接口的源码。
 
-<pre>
-<code>
+```java
 public interface HandlerExceptionResolver {
 
 	ModelAndView resolveException(
 			HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex);
 
 }
-</code>
-</pre>
+```
 
 该接口只定义了一个resolveException方法，我们需要做的就是自定义一个统一异常处理类并实现该接口，如下所示：
 
-<pre>
-<code>
+```java
 @Order(-1000)
 public class ExceptionResolver implements HandlerExceptionResolver {
     
@@ -162,16 +159,14 @@ public class ExceptionResolver implements HandlerExceptionResolver {
 	}
   
 }
-</code>
-</pre>
+```
 
 resovleException方法负责解析并处理异常，可以在这里面实现自定义的异常处理逻辑，值得一提的是，该方法返回ModelAndView，所以对于前后端分离的开发场景，需要手动打开流并写回JSON格式。另外需要注意的是，需要在这个类上加上@Order注解，因为Spring默认有三个异常拦截器，里面的order属性分别为0，1，2，当异常被捕获时，会首先去这三个拦截器中找匹配的异常，若有匹配的，则不会执行我们自定义的异常处理器。@Order(-1000)的作用就是将顺序提到第一位，先加载我们的，有符合异常条件的，则不会继续走其他三个默认的。若请求没报异常，则此类的resovleException方法是不会运行的。
 
 #### @ControllerAdvice注解的使用方式
 这种方式相对于上一种来说更加简单，代码更加清晰易懂，定义一个全局统一异常处理类，如下图所示：
 
-<pre>
-<code>
+```java
 @ControllerAdvice
 @Order(-1000)
 @Slf4j
@@ -195,8 +190,7 @@ public class UnitedExceptionHandleAdvice {
     }
 
 }
-</code>
-</pre>
+```
 
 在这个类上加上@ControllerAdvice注解，同时加上@Order(-1000)，原理同上。在类中定义异常处理方法，并配合@ExceptionHandler注解，指明这个方法可以处理哪一种类型的异常。同时配合@ResponseBody注解，可以轻松的返回JSON格式的数据。
 
@@ -206,8 +200,7 @@ public class UnitedExceptionHandleAdvice {
 
 首先来看看这个注解的源码。
 
-<pre>
-<code>
+```java
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
@@ -227,8 +220,7 @@ public @interface ControllerAdvice {
 	Class<? extends Annotation>[] annotations() default {};
 
 }
-</code>
-</pre>
+```
 
 非常简单，表面上看不出任何的功能的实现，但是注意它的Retention是Runtime。
 
@@ -243,18 +235,15 @@ public @interface ControllerAdvice {
 接下来先看看ExceptionHandlerExceptionResolver的部分相关源码，以此来弄清楚exceptionHandlerAdviceCache是如何初始化的。
 可以看到，ExceptionHandlerExceptionResolver实现了InitializingBean接口，这个接口只定义一个afterPropertiesSet方法，如下所示：
 
-<pre>
-<code>
+```java
 public interface InitializingBean {
 	void afterPropertiesSet() throws Exception;
 }
-</code>
-</pre>
+```
 
 这个接口的作用就是在Spring容器初始化bean的时候完成一些初始化操作。ExceptionHandlerExceptionResolver实现了该方法，并在该方法中完成了对exceptionHandlerAdviceCache的初始化，我们来看一下其关键的部分：通过ControllerAdviceBean.findAnnotatedBeans方法从上下文中找出所有注解了@ControllerAdvice的类，如下所示：
 
-<pre>
-<code>
+```java
 public class ControllerAdviceBean implements Ordered {
 	public static List<ControllerAdviceBean> findAnnotatedBeans(ApplicationContext applicationContext) {
 		List<ControllerAdviceBean> beans = new ArrayList<ControllerAdviceBean>();
@@ -266,8 +255,7 @@ public class ControllerAdviceBean implements Ordered {
 		return beans;
 	}
 }
-</code>
-</pre>
+```
 
 
 找到之后封装成ExceptionHandlerMethodResolver，装载到exceptionHandlerAdviceCache中，从而完成初始化动作。应用启动后，对于请求抛出的异常，将在这里面寻找合适的方法进行处理。
