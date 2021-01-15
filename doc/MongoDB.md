@@ -18,7 +18,8 @@ Getting started {.cols-2}
 
 
 ### Connect MongoDB
-```
+
+```sql
 mongo
 
 mongo mongodb://$[host:port]/$[database]
@@ -29,79 +30,97 @@ mongo mongodb://$[host:port]/$[database] --username $[username]
 ### Database
 
 Create and switch database
+
 ```sql
-use $[database]
+use database_name
 ```
 
-Switch database 
-```sql
-use $[database]
-```
+Switch database
 
-List databases 
 ```sql
-use $[database]
+use database_name
 ```
 
 Delete database
+
 ```sql
-`use` $[database]
 db.dropDatabase()
+```
+
+List databases
+
+```sql
+show dbs
 ```
 
 ### Collection
 
+Create collection
 
-
-
-
-### Commons {.row-span-2} 
-
-
-#### Collection
-| - | - |
-|------------------------|-------------------------|
-| `show tables;`         | List tables for current db|
-| `show fields from` t`;`  | List fields for a table  |
-| `desc` t`;`              | Show table structure    |
-| `show create table `t`;` | Show create table sql   |
-| `truncate table `t`;` | Remove all data in a table |
-| `drop table `t`;` | Delete table |
-
-
-#### Other
-
-| - | - |
-|------------------------|-------------------------|
-| `exit` or `ctrl + c`         | Exit MongoDB session      |
-
-
-
-### Backups
-
-Create a backup
 ```sql
-mysqldump -u user -p db_name > db.sql
+db.createCollection(collection_name)
 ```
 
-Export db without schema	
-``` {.wrap}
-mysqldump -u user -p db_name --no-data=true --add-drop-table=false > db.sql
+Delete collection
+
+```sql
+db.collection_name.drop()
 ```
 
-Restore a backup
-```
-mysql -u user -p db_name < db.sql
+List collections
+
+```sql
+show collections
 ```
 
+### Document
 
+Insert document
+
+```sql
+db.collection_name.insert(document_json)
+
+```
+
+DELETE document
+
+```sql
+db.collection_name.remove(
+   $<query>,
+   {
+     justOne: $<boolean>,
+     writeConcern: $<document>
+   }
+)
+```
+
+Update document
+
+```sql
+db.collection.update(
+   query,
+   update,
+   {
+     upsert: $<boolean>,
+     multi: $<boolean>,
+     writeConcern: $<document>
+   }
+)
+
+```
+
+Find document
+
+```sql
+db.collection_name.find($<query>, $<projection>)
+```
 
 
 Examples {.cols-3}
 --------------
 
 
-### Managing tables
+### Managing collections
 Create a new table with three columns
 
 ```sql
@@ -154,193 +173,124 @@ TRUNCATE TABLE t;
 
 
 
-### Querying data from a table
-Query data in columns c1, c2 from a table
+### Finding documnents from a colletion
+Find all documents in a formatted way
 
 ```sql
-SELECT c1, c2 FROM t
+db.<collection_name>.find().pretty()
 ```
 
-
-Query all rows and columns from a table
+Find documents using "AND" logical operator
 
 ```sql
-SELECT * FROM t
+db.<colletion_name>.find(
+	{
+		<key1>: <value1>, 
+		<key2>: <value2>
+	}
+)
 ```
 
-
-Query data and filter rows with a condition
+Find documents using "OR" logical operator
 
 ```sql
-SELECT c1, c2 FROM t
-WHERE condition
+db.<colletion_name>.find(
+	{
+		$or: [
+			{
+				<key1>: <value1>
+			},
+			{
+				<key2>: <value2>
+			}
+		]
+	}
+)
 ```
 
-
-Query distinct rows from a table
+Find documents using both "AND" and "OR" logical operators at the same time
 
 ```sql
-SELECT DISTINCT c1 FROM t
-WHERE condition
+db.collection_name.find(
+	{
+		<key1>: <value1>
+	},
+   {
+      $or: [
+         {key1: value1}, {key2:value2}
+      ]
+   }
+)
 ```
 
-
-Sort the result set in ascending or descending order
+Find documnets using ">" conditional operator
 
 ```sql
-SELECT c1, c2 FROM t
-ORDER BY c1 ASC [DESC]
+db.<collection_name>.find(
+	{
+		key1: {$gt: value1}
+	}
+)
 ```
 
-
-Skip offset of rows and return the next n rows
+Find documnets using ">=" conditional operator
 
 ```sql
-SELECT c1, c2 FROM t
-ORDER BY c1 
-LIMIT n OFFSET offset
+db.<collection_name>.find(
+	{
+		<key1>: {$gte: <value1>}
+	}
+)
 ```
 
-
-Group rows using an aggregate function
+Find documents using "<" conditional operator
 
 ```sql
-SELECT c1, aggregate(c2)
-FROM t
-GROUP BY c1
+db.<collection_name>.find(
+	{
+		<key1>: {$lt: <value1>}
+	}
+)
 ```
 
-
-Filter groups using HAVING clause
-
+Find documents using "<=" condtional operator
 ```sql
-SELECT c1, aggregate(c2)
-FROM t
-GROUP BY c1
-HAVING condition
+db.<collection_name>.find(
+	{
+		<key1>: {$lte: <value1>}
+	}
+)
 ```
 
-
-### Querying from multiple tables {.row-span-2}
-Inner join t1 and t2
+Find documents using both ">" and "<" condtional operators at the same time
 
 ```sql
-SELECT c1, c2 
-FROM t1
-INNER JOIN t2 ON condition
+db.<collection_name>.find(
+	{
+		<key1>: {
+			$gt: <value1>, 
+			$lt: <value2>
+		}
+	}
+)
 ```
 
+Find documents, return the next n rows
 
-Left join t1 and t1
-
-```sql
-SELECT c1, c2 
-FROM t1
-LEFT JOIN t2 ON condition
+``` sql
+db.<collection_name>.find().limit(<n>)
 ```
 
-
-Right join t1 and t2
+Find document, skip offset of rows and return the next n rows
 
 ```sql
-SELECT c1, c2 
-FROM t1
-RIGHT JOIN t2 ON condition
+db.<collection_name>.find().limit(<number1>).skip(<number2>)
 ```
 
-
-Perform full outer join
-
-```sql
-SELECT c1, c2 
-FROM t1
-FULL OUTER JOIN t2 ON condition
-```
-
-
-Produce a Cartesian product of rows in tables
+Find documents, sort in ascending or descending order
 
 ```sql
-SELECT c1, c2 
-FROM t1
-CROSS JOIN t2
-```
-
-
-Another way to perform cross join
-
-```sql
-SELECT c1, c2 
-FROM t1, t2
-```
-
-
-Join t1 to itself using INNER JOIN clause
-
-```sql
-SELECT c1, c2
-FROM t1 A
-INNER JOIN t1 B ON condition
-```
-
-
-Using SQL Operators
-Combine rows from two queries
-
-```sql
-SELECT c1, c2 FROM t1
-UNION [ALL]
-SELECT c1, c2 FROM t2
-```
-
-
-Return the intersection of two queries
-
-```sql
-SELECT c1, c2 FROM t1
-INTERSECT
-SELECT c1, c2 FROM t2
-```
-
-
-Subtract a result set from another result set
-
-```sql
-SELECT c1, c2 FROM t1
-MINUS
-SELECT c1, c2 FROM t2
-```
-
-
-Query rows using pattern matching %, _
-
-```sql
-SELECT c1, c2 FROM t1
-WHERE c1 [NOT] LIKE pattern
-```
-
-
-Query rows in a list
-
-```sql
-SELECT c1, c2 FROM t
-WHERE c1 [NOT] IN value_list
-```
-
-
-Query rows between two values
-
-```sql
-SELECT c1, c2 FROM t
-WHERE  c1 BETWEEN low AND high
-```
-
-
-Check if values in a table is NULL or not
-
-```sql
-SELECT c1, c2 FROM t
-WHERE  c1 IS [NOT] NULL
+db.<collection_name>.find().sort({<key1>:<1|-1>})
 ```
 
 
